@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Shivam",
+    "shift": "Morning",
+    "days": "Sun-Thu",
+    "location": "GGN",
+    "status": "Online",
+    "skills": ["SQL","Linux"],
+    "tasks": 4
+  },
+  {
+    "name": "Harsh",
+    "shift": "Night",
+    "days": "Tue-Sat",
+    "location": "HYD",
+    "status": "Busy",
+    "skills": ["Infra"],
+    "tasks": 2
+  },
+  {
+    "name": "Deepika",
+    "shift": "General",
+    "days": "Sun-Thu",
+    "location": "HYD",
+    "status": "Offline",
+    "skills": ["Support"],
+    "tasks": 1
+  }
+]
