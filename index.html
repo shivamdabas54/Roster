@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Dashboard</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+body {
+  background: radial-gradient(circle at top, #0a0a0a, #050505);
+  color: white;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Glass */
+.glass {
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  transition: 0.3s ease;
+}
+
+/* Glow */
+.glow:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 25px rgba(168,85,247,0.2);
+}
+
+/* Sidebar */
+.sidebar-btn:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+/* Status Colors */
+.online { color:#22c55e; }
+.busy { color:#eab308; }
+.offline { color:#6b7280; }
+
+/* Hidden admin */
+.admin { display:none; }
+.admin.active { display:block; }
+</style>
+</head>
+
+<body class="flex h-screen">
+
+<!-- SIDEBAR -->
+<div class="w-56 p-4 flex flex-col gap-4 glass m-4">
+  <h1 class="text-xl text-purple-400 font-bold">TEAM OS</h1>
+
+  <button class="tab-btn sidebar-btn p-2 rounded active" data-tab="roster">Roster</button>
+  <button class="tab-btn sidebar-btn p-2 rounded" data-tab="dashboard">Dashboard</button>
+
+  <div class="mt-auto text-xs text-gray-500">
+    Ctrl + Shift + A → Admin
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="flex-1 p-6 overflow-y-auto">
+
+<!-- HEADER -->
+<div class="flex justify-between mb-6">
+  <input id="search" placeholder="Search..." class="glass p-2 w-1/3">
+  
+  <div class="flex gap-2">
+    <select id="shiftFilter" class="glass p-2">
+      <option value="">All Shifts</option>
+      <option>Morning</option>
+      <option>Night</option>
+      <option>General</option>
+    </select>
+
+    <select id="statusFilter" class="glass p-2">
+      <option value="">All Status</option>
+      <option>Online</option>
+      <option>Busy</option>
+      <option>Offline</option>
+    </select>
+  </div>
+</div>
+
+<!-- DASHBOARD STATS -->
+<div id="dashboard" class="tab hidden grid grid-cols-4 gap-4 mb-6">
+</div>
+
+<!-- ROSTER -->
+<div id="roster" class="tab grid grid-cols-3 gap-5"></div>
+
+</div>
+
+<script>
+lucide.createIcons();
+
+let data = [];
+let admin = false;
+
+/* Ghost Admin Login */
+document.addEventListener('keydown', e=>{
+  if(e.ctrlKey && e.shiftKey && e.key==='A'){
+    let pass = prompt("Admin Password");
+    if(pass==="Admin123"){
+      admin = !admin;
+      document.querySelectorAll('.admin').forEach(el=>{
+        el.classList.toggle('active', admin);
+      });
+    }
+  }
+});
+
+/* Fetch Data */
+async function loadData(){
+  const res = await fetch('data.json');
+  data = await res.json();
+  renderAll();
+}
+
+/* Render Dashboard */
+function renderStats(){
+  const d = document.getElementById('dashboard');
+
+  let online = data.filter(x=>x.status==="Online").length;
+  let total = data.length;
+  let night = data.filter(x=>x.shift==="Night").length;
+
+  d.innerHTML = `
+    <div class="glass p-4 glow">Online <div class="text-cyan-400 text-xl">${online}</div></div>
+    <div class="glass p-4 glow">Total <div class="text-purple-400 text-xl">${total}</div></div>
+    <div class="glass p-4 glow">Night <div class="text-pink-400 text-xl">${night}</div></div>
+    <div class="glass p-4 glow">Tasks <div class="text-green-400 text-xl">${data.reduce((a,b)=>a+b.tasks,0)}</div></div>
+  `;
+}
+
+/* Render Roster */
+function renderRoster(filtered){
+  const container = document.getElementById('roster');
+  container.innerHTML = '';
+
+  filtered.forEach(m=>{
+    container.innerHTML += `
+    <div class="glass glow p-4">
+      <div class="flex justify-between">
+        <div>
+          <div class="font-bold">${m.name}</div>
+          <div class="text-xs text-gray-400">${m.location} • ${m.shift}</div>
+        </div>
+        <div class="text-xs ${m.status.toLowerCase()}">${m.status}</div>
+      </div>
+
+      <div class="mt-3 text-xs">${m.skills.join(', ')}</div>
+
+      <div class="mt-2 text-cyan-400 text-xs">
+        Tasks: ${m.tasks}
+      </div>
+
+      <div class="admin mt-3 flex gap-2">
+        <button class="text-xs bg-purple-500 px-2 py-1 rounded">Edit</button>
+        <button class="text-xs bg-red-500 px-2 py-1 rounded">Delete</button>
+      </div>
+    </div>
+    `;
+  });
+}
+
+/* Filters */
+function applyFilters(){
+  let search = document.getElementById('search').value.toLowerCase();
+  let shift = document.getElementById('shiftFilter').value;
+  let status = document.getElementById('statusFilter').value;
+
+  let filtered = data.filter(m=>{
+    return (
+      m.name.toLowerCase().includes(search) &&
+      (shift==='' || m.shift===shift) &&
+      (status==='' || m.status===status)
+    );
+  });
+
+  renderRoster(filtered);
+}
+
+/* Events */
+document.getElementById('search').oninput = applyFilters;
+document.getElementById('shiftFilter').onchange = applyFilters;
+document.getElementById('statusFilter').onchange = applyFilters;
+
+/* Tabs */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.onclick = ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.add('hidden'));
+    document.getElementById(btn.dataset.tab).classList.remove('hidden');
+  }
+});
+
+/* Init */
+function renderAll(){
+  renderStats();
+  applyFilters();
+}
+
+loadData();
+</script>
+
+</body>
+</html>
